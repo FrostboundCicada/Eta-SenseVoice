@@ -25,3 +25,9 @@ runs:
     - name: 安装 Android SDK 37
       shell: bash
       run: sdkmanager --channel=3 "platforms;android-37.0"
+
+    # sherpa-onnx 的 AAR 只在 GitHub Release 发布，不在 Maven 仓库，
+    # 且体积大不进版本库（见 .gitignore 的 app/libs/*.aar），构建前必须先拉到 app/libs
+    - name: 下载本地语音识别运行时
+      shell: bash
+      run: bash scripts/fetch-sherpa-onnx.sh
