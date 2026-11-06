@@ -83,13 +83,19 @@ internal fun SpeechRecognitionScreen(onBack: () -> Unit, onOpenOss: () -> Unit) 
                                 AsrProvider.QWEN_REALTIME, AsrProvider.DOUBAO -> R.string.speech_asr_note_streaming
                                 AsrProvider.QWEN_FLASH -> R.string.speech_asr_note_flash
                                 AsrProvider.QWEN_FILE -> R.string.speech_asr_note_file
+                                AsrProvider.LOCAL_SENSE_VOICE -> R.string.speech_asr_note_local
                             },
                         ),
                     )
                 }
             }
-            item(key = "connection") {
-                SpeechConnectionSection(store, synthesis = false)
+            if (settings.asr == AsrProvider.LOCAL_SENSE_VOICE) {
+                item(key = "local_model") { LocalModelSection(store) }
+            } else {
+                // 本地模型不需要任何服务凭据，整段连接配置隐藏，避免误会成还要填 Key。
+                item(key = "connection") {
+                    SpeechConnectionSection(store, synthesis = false)
+                }
             }
             if (settings.asr != AsrProvider.DOUBAO) {
                 item(key = "language") {

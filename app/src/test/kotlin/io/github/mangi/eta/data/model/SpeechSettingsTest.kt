@@ -51,6 +51,28 @@ class SpeechSettingsTest {
         }
     }
 
+    @Test fun localProviderNeedsNoCredentialsButChecksItsOwnParameters() {
+        // 本地识别不依赖任何云端凭据，默认配置必须能直接通过校验。
+        validateSpeechSettings(SpeechSettings(asr = AsrProvider.LOCAL_SENSE_VOICE), SpeechCredentials(), false)
+        assertThrows(SpeechFailure::class.java) {
+            validateSpeechSettings(
+                SpeechSettings(asr = AsrProvider.LOCAL_SENSE_VOICE, language = "fr"),
+                SpeechCredentials(),
+                false,
+            )
+        }
+        assertThrows(SpeechFailure::class.java) {
+            validateSpeechSettings(
+                SpeechSettings(
+                    asr = AsrProvider.LOCAL_SENSE_VOICE,
+                    localAsr = LocalAsrConfig(numThreads = 0),
+                ),
+                SpeechCredentials(),
+                false,
+            )
+        }
+    }
+
     @Test fun credentialsAreRedactedAndNeverPartOfSettings() {
         val secrets = SpeechCredentials(qwenAsr = "private-key")
         assertFalse(secrets.toString().contains("private-key"))

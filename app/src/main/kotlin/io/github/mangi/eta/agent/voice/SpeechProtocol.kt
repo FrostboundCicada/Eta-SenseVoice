@@ -1,10 +1,12 @@
 package io.github.mangi.eta.agent.voice
 
 import io.github.mangi.eta.data.model.AsrProvider
+import io.github.mangi.eta.data.model.LocalAsrConfig
 import io.github.mangi.eta.data.model.SpeechCredentials
 import io.github.mangi.eta.data.model.SpeechSettings
 import io.github.mangi.eta.data.model.TtsProvider
 import io.github.mangi.eta.data.repository.SpeechCredentialsUnavailable
+import java.io.File
 import java.io.IOException
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -81,6 +83,25 @@ internal fun validateSpeechSettings(settings: SpeechSettings, secrets: SpeechCre
                 if (!Regex("[a-z0-9][a-z0-9-]{1,61}[a-z0-9]").matches(settings.oss.bucket) ||
                     settings.oss.prefix.split('/').any { it == ".." || it == "." }
                 ) throw SpeechFailure(SpeechErrorCode.CONFIGURATION, "请检查 OSS Bucket 和目录前缀")
+            }
+        }
+        AsrProvider.LOCAL_SENSE_VOICE -> {
+            val local = settings.localAsr
+            if (local.numThreads !in 1..8) {
+                throw SpeechFailure(SpeechErrorCode.CONFIGURATION, "本地识别线程数须在 1～8 之间")
+            }
+            // 允许 zh-CN / zh_CN 这类带地区的写法，本地模型只认主语言标签。
+            val language = settings.language.trim().lowercase().substringBefore('-').substringBefore('_')
+            if (language.isNotEmpty() && language !in LocalAsrConfig.LANGUAGES) {
+                throw SpeechFailure(SpeechErrorCode.CONFIGURATION, "本地模型只支持 zh、en、ja、ko、yue，留空则自动识别")
+            }
+            // 默认模型目录由 App 私有空间推导，这里的纯函数没有 Context 无法校验；
+            // 显式配置了目录时顺带检查文件是否齐备，默认目录由本地模型页与识别入口兜底。
+            if (local.modelDir.isNotBlank() && !LocalAsrModelStore.isReady(File(local.modelDir))) {
+                throw SpeechFailure(
+                    SpeechErrorCode.CONFIGURATION,
+                    "本地模型文件不完整，请重新导入 model.int8.onnx 与 tokens.txt",
+                )
             }
         }
     }

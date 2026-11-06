@@ -1,13 +1,13 @@
 # 语音识别与播报
 
-Eta 的「设置 → 语音」分别配置语音识别（ASR）与语音播报（TTS）。语音识别由 Eta 自行录音并调用用户配置的在线 API，不依赖设备预装识别引擎，也不需要 Root。默认选择千问实时识别，需填写对应凭据后使用；播报与助手自动播报默认关闭。
+Eta 的「设置 → 语音」分别配置语音识别（ASR）与语音播报（TTS）。语音识别由 Eta 自行录音：默认调用用户配置的在线 API，不依赖设备预装识别引擎，也不需要 Root；也可以在设备本地跑 SenseVoice 模型，完全离线、不需要任何凭据。默认选择千问实时识别，需填写对应凭据后使用；播报与助手自动播报默认关闭。
 
 在「语音识别」页关闭「启用语音识别」并保存，即可停用 Eta 内置语音输入。聊天和助手浮窗隐藏麦克风入口，不再启动录音或请求语音接口；原有服务、凭据和识别参数会保留，重新开启后继续使用。输入法自己的语音输入及 Eta 的语音播报不受此开关影响。
 
 ## 使用方式
 
 - **聊天听写**：点击输入框麦克风开始，点击完成后把最终文字插入当前选区，可编辑后发送。预览文字不会覆盖已有草稿。
-- **助手浮窗**：识别结果直接发起提问。千问实时与豆包流式在停顿后自动发送，停顿时长可选 1、1.5、2（默认）或 3 秒，也可关闭；千问短音频与文件转写需点击完成。长按麦克风进入按住说话，期间停顿不会发送，松手发送，手指移出按钮取消。回答下方提供朗读按钮。
+- **助手浮窗**：识别结果直接发起提问。千问实时、豆包流式与本地离线在停顿后自动发送，停顿时长可选 1、1.5、2（默认）或 3 秒，也可关闭；千问短音频与文件转写需点击完成。长按麦克风进入按住说话，期间停顿不会发送，松手发送，手指移出按钮取消。回答下方提供朗读按钮。
 - **文字唤醒**：关闭语音识别后，全局唤醒先播放入场光效，再让文字输入栏淡入并轻微上移，显现完成后才聚焦并请求键盘，可直接使用输入法语音输入。空输入时显示不可点击的发送按钮；输入法收起后也不会重新启动识别。各阶段通过动画完成回调衔接，键盘升降期间由布局阶段的 Insets 保持输入栏与键盘同步。用户提前点击输入框会接管输入，关闭浮窗会取消后续自动聚焦；键盘自身的动画速度由系统和输入法决定。
 - **智能纠错**：开启后，识别结果在交付前用当前对话模型做一次不带工具的保守校对，只修正同音字和被识别成中文谐音的英文术语，不改写正确内容。纠错最多等待 8 秒；未配置对话模型、请求失败、超时或输出长度异常时直接使用原始识别结果。聊天听写与浮窗都生效，会增加少量延迟和模型费用。
 - **回答播报**：聊天回答可手动朗读；朗读期间退到后台或锁屏会继续播放，通知栏显示「Eta 正在朗读」并可停止，离开聊天页才结束。在聊天页「更多」菜单中开启自动朗读后，每轮回答正常结束时自动朗读这一轮的最终回答；停止或失败的回合、切换会话与打开历史都不会补读，关闭开关会停止正在进行的朗读。开启「助手自动播报回答」后，仅播报浮窗中语音提问的成功最终回答，不读取思考、工具日志或代码块。
@@ -17,7 +17,7 @@ Eta 的「设置 → 语音」分别配置语音识别（ASR）与语音播报�
 
 助手浮窗在实际录音、播放期间分别声明麦克风、媒体播放前台服务，并显示可停止的通知；结束音频操作即撤下通知。它不延长浮窗隐藏后的音频任务，也不提供后台持续监听或播放。
 
-单次录音最多 60 秒。实时接口可显示识别预览，短音频与文件转写在录音完成后返回文字。切换服务不会自动复制凭据或替换已保存的其他服务配置；失败不会自动回退到另一家供应商。
+单次录音最多 60 秒。实时接口与本地离线可显示识别预览，短音频与文件转写在录音完成后返回文字。切换服务不会自动复制凭据或替换已保存的其他服务配置；失败不会自动回退到另一家供应商。
 
 ## 服务配置
 
@@ -27,6 +27,7 @@ Eta 的「设置 → 语音」分别配置语音识别（ASR）与语音播报�
 | 千问短音频 ASR | `qwen3-asr-flash` | 百炼地域、API Key |
 | 千问文件转写 | `qwen3-asr-flash-filetrans` | 百炼地域、API Key、自有 OSS |
 | 豆包流式 ASR | 流式识别 2.0 | API Key；默认资源 ID `volc.seedasr.sauc.duration` |
+| 本地离线 ASR | sherpa-onnx + SenseVoice（int8） | 无需凭据；下载或导入模型文件，可选语言 zh/en/ja/ko/yue |
 | 千问 TTS | `qwen3-tts-flash-realtime`，不可用时回落 `qwen3-tts-flash` | 百炼地域、独立播报 API Key、音色；默认 Cherry |
 | 豆包 TTS | 语音合成 2.0，双向流式，不可用时回落单向流式 | 独立播报 API Key、音色；默认 VV，资源 ID `seed-tts-2.0` |
 | Gemini TTS | Interactions 语音合成，分段流式 | Google AI Studio API Key、语音模型、音色；可选朗读风格 |
@@ -65,6 +66,7 @@ Eta 上传 WAV 后生成有效期 15 分钟的读取签名 URL，向百炼提交
 - `SpeechTranscriptRefiner` 通过 `RuntimeConfigRepository` 读取当前对话模型，复用 Provider 层发出独立的 `TRANSCRIPT_REFINE` 请求：不带工具、托管搜索与自定义请求体，可关闭思考时关闭，否则使用最低档。识别文字只作为用户消息，取消或超时会取消底层 HTTP 调用。
 - `SpeechSettingsRepository` 隔离持久化；普通配置进入现有 DataStore，凭据用 Android Keystore 的 AES-GCM 加密后保存。凭据不进入 RemotePreferences、会话、日志或数据导出；语音配置目前也不纳入手动备份。不可解密的凭据会要求重新填写，不静默当作空配置。
 - 设置页、聊天与浮窗复用相同控制器；网络与音频循环不进入 Composable、Hook 或 Agent loop，Runtime IPC 与归档格式保持兼容。
+- 本地识别走 sherpa-onnx 的 Android AAR（`app/libs/sherpa-onnx-2.0.1.aar`，由 `scripts/fetch-sherpa-onnx.sh` 下载，不入库），SenseVoice 的前端（kaldi fbank + LFR + CTC）与解码都在原生层完成。模型固定放在应用私有目录 `files/models/sense-voice/`，需要 `model.int8.onnx` 与 `tokens.txt`，可从 Hugging Face 下载，或用系统的文件夹选择器（SAF）直接导入，不申请全盘存储权限；两者都写 `.part` 临时文件再改名，长度不符即判定下载中断。识别器在进程内只保留一个实例（模型约 228 MB，加载 1～2 秒），设置变化才重建；录音期间每 1.2 秒用最近 8 秒音频重解码生成预览（int8 模型在手机上约 0.2 倍实时，窗口再长会一直占满 CPU），最终结果在录音结束后整段解码。由于离线模型无法在流式过程中由服务端断句，`LocalEndpointGate` 以「自适应底噪 + 9 dB 余量 + 连续静音时长」复刻停顿判定，静音时长直接复用页面上「停顿后自动发送」的设置。模型与音频都不离开设备。
 
 ## 官方资料
 
@@ -78,4 +80,5 @@ Eta 上传 WAV 后生成有效期 15 分钟的读取签名 URL，向百炼提交
 - [豆包单向流式 TTS HTTP](https://docs.volcengine.com/docs/DoubaoVoice/unidirectional-streaming-text-to-speech-http?lang=zh)
 - [Gemini 语音合成与音色](https://ai.google.dev/gemini-api/docs/speech-generation)、[Interactions 流式事件](https://ai.google.dev/gemini-api/docs/streaming)
 - [MiniMax 同步语音合成](https://platform.minimax.cn/docs/api-reference/speech-t2a-http)、[系统音色](https://platform.minimax.cn/docs/faq/system-voice-id)
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)（Android AAR 与 Kotlin API）、[SenseVoice 预导出模型](https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17)
 - [OSS V4 请求头签名](https://help.aliyun.com/zh/oss/developer-reference/recommend-to-use-signature-version-4)、[URL 签名](https://help.aliyun.com/zh/oss/developer-reference/add-signatures-to-urls)

@@ -70,3 +70,10 @@
 -keep class io.github.mangi.eta.agent.virtualdisplay.VirtualDisplayCommandMain {
     public static void main(java.lang.String[]);
 }
+
+# sherpa-onnx 的 JNI 入口按类名与方法名在原生层查找（com/k2fsa/sherpa/onnx/*），
+# release 混淆或裁剪后会在运行时变成 UnsatisfiedLinkError，因此整包保留。
+-keep class com.k2fsa.sherpa.onnx.** { *; }
+-keepclassmembers class com.k2fsa.sherpa.onnx.** {
+    native <methods>;
+}

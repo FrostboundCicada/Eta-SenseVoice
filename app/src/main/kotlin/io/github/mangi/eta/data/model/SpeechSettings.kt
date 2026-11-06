@@ -3,7 +3,7 @@ package io.github.mangi.eta.data.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class AsrProvider { QWEN_REALTIME, QWEN_FLASH, QWEN_FILE, DOUBAO }
+enum class AsrProvider { QWEN_REALTIME, QWEN_FLASH, QWEN_FILE, DOUBAO, LOCAL_SENSE_VOICE }
 
 @Serializable
 enum class TtsProvider { NONE, QWEN, DOUBAO, GEMINI, MINIMAX }
@@ -66,6 +66,26 @@ data class SpeechOssConfig(
     val prefix: String = "eta-speech/",
 )
 
+/** 本地 SenseVoice 模型：音频不出设备，识别由 sherpa-onnx 在应用进程内完成。 */
+@Serializable
+data class LocalAsrConfig(
+    /** 模型目录，留空表示应用私有目录 `files/models/sense-voice`。 */
+    val modelDir: String = "",
+    val numThreads: Int = DEFAULT_THREADS,
+    /** 逆文本归一化：把「二零二五年」这类口语数字改写成阿拉伯数字。 */
+    val useInverseTextNormalization: Boolean = true,
+) {
+    companion object {
+        const val DEFAULT_THREADS = 2
+        const val MODEL_FILE = "model.int8.onnx"
+        /** 兼容未量化的导出，两者存在其一即可。 */
+        const val MODEL_FILE_FULL = "model.onnx"
+        const val TOKENS_FILE = "tokens.txt"
+        /** SenseVoice 只接受这些语言标签，其余取值一律交给模型自动判断。 */
+        val LANGUAGES = listOf("zh", "en", "ja", "ko", "yue")
+    }
+}
+
 @Serializable
 data class SpeechSettings(
     val asr: AsrProvider = AsrProvider.QWEN_REALTIME,
@@ -77,6 +97,8 @@ data class SpeechSettings(
     val qwenAsr: QwenSpeechConfig = QwenSpeechConfig(),
     val qwenTts: QwenSpeechConfig = QwenSpeechConfig(),
     val doubaoAsr: DoubaoSpeechConfig = DoubaoSpeechConfig(),
+    /** 仅 [AsrProvider.LOCAL_SENSE_VOICE] 使用，其它识别方式忽略。 */
+    val localAsr: LocalAsrConfig = LocalAsrConfig(),
     val doubaoTts: DoubaoSpeechConfig = DoubaoSpeechConfig(),
     val qwenVoice: String = "Cherry",
     val doubaoVoice: String = "zh_female_vv_uranus_bigtts",

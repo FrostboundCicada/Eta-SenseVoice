@@ -147,8 +147,18 @@ androidComponents {
     }
 }
 
+// 本地语音识别运行时：sherpa-onnx 官方预编译 AAR（含 SenseVoice 推理、ONNX Runtime 与 kaldi fbank 前端）。
+// 该产物不在 Maven 中央仓库，由 scripts/fetch-sherpa-onnx.sh 下载到 app/libs，不进版本控制。
+// application 模块可以直接把 AAR 当文件依赖；若未来 AGP 收紧这一行为，改用在 repositories 里加
+// `flatDir { dirs("libs") }` 并声明 `implementation(":sherpa-onnx-2.0.1@aar")` 即可等价替换。
+val sherpaOnnxAar = file("libs/sherpa-onnx-2.0.1.aar")
+require(sherpaOnnxAar.isFile) {
+    "缺少 ${sherpaOnnxAar.path}：请先运行 scripts/fetch-sherpa-onnx.sh 下载本地语音识别运行时"
+}
+
 dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
+    implementation(files(sherpaOnnxAar))
     implementation(libs.jsoup)
     implementation(libs.commons.compress)
     implementation(libs.xz)

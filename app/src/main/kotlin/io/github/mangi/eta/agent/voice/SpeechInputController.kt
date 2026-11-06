@@ -71,6 +71,8 @@ internal class SpeechInputController(
                 lease = SpeechAudioLease(context) { cancel() }.also { it.acquire(playback = false) }
                 val secrets = credentials ?: SpeechSettingsRepository.credentials(context)
                 validateSpeechSettings(config, secrets, synthesis = false)
+                // 本地模型缺文件要在这里就失败：录音开始后再报错，用户已经白说了一句话。
+                if (config.asr == AsrProvider.LOCAL_SENSE_VOICE) LocalAsrModelStore.validate(context, config.localAsr)
                 val endpointSilenceMs = if (automaticEndpoint && !holdToTalk) config.autoSendSilenceMs else 0
                 val audio = createRecorder()
                 recorder = audio
@@ -100,8 +102,8 @@ internal class SpeechInputController(
                         Unit
                     }
                     try {
-                        if (config.asr == AsrProvider.QWEN_REALTIME || config.asr == AsrProvider.DOUBAO) {
-                            recognizeStream(
+                        when (config.asr) {
+                            AsrProvider.QWEN_REALTIME, AsrProvider.DOUBAO -> recognizeStream(
                                 config,
                                 secrets,
                                 audio.frames,
@@ -110,11 +112,23 @@ internal class SpeechInputController(
                                 { audio.finish() },
                                 endpointSilenceMs,
                             )
-                        } else {
-                            begin()
-                            val wav = withTimeout(65_000) { collectSpeechAudio(audio.frames) }
-                            recognizeSpeechFile(context, config, secrets, wav) { progress ->
-                                update { it.copy(phase = EtaSpeechPhase.RECOGNIZING, progress = progress) }
+                            // 本地模型下载/加载较慢，进度只在「加载」阶段提示，进入聆听后会由录音回调覆盖。
+                            AsrProvider.LOCAL_SENSE_VOICE -> recognizeLocalSpeech(
+                                context = context,
+                                settings = config,
+                                frames = audio.frames,
+                                onReady = begin,
+                                onPreview = { preview -> update { it.copy(preview = preview) } },
+                                onEndpoint = { audio.finish() },
+                                onProgress = { progress -> update { it.copy(progress = progress) } },
+                                endpointSilenceMs = endpointSilenceMs,
+                            )
+                            AsrProvider.QWEN_FLASH, AsrProvider.QWEN_FILE -> {
+                                begin()
+                                val wav = withTimeout(65_000) { collectSpeechAudio(audio.frames) }
+                                recognizeSpeechFile(context, config, secrets, wav) { progress ->
+                                    update { it.copy(phase = EtaSpeechPhase.RECOGNIZING, progress = progress) }
+                                }
                             }
                         }
                     } finally {
